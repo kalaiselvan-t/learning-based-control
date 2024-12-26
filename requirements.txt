@@ -1,0 +1,13 @@
+setuptools
+gymnasium
+gym
+swig
+gymnasium[box2d]
+tqdm
+matplotlib
+imageio
+PyQt5
+numpy
+torch
+torchvision
+torchaudio
