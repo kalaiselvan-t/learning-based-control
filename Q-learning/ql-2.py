@@ -21,7 +21,7 @@ def run(episodes: int, is_training: bool=True, render: bool=False):
     if is_training:
         q_table = np.zeros(shape = (len(pos_space), len(vel_space), env.action_space.n))
     else:
-        f = open('Q-learning/mountain_car.pkl', 'rb')
+        f = open('mountain_car.pkl', 'rb')
         q_table = pickle.load(f)
         f.close()
     

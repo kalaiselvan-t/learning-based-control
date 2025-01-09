@@ -5,6 +5,7 @@
     - If the cart moves more than 2.4 units from the center
 - Better performing scenarios will run for longer duration, accumulating larger return
 '''
+
 # imports
 import gymnasium as gym
 import math
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
 import logging
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -21,14 +23,14 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='dqn.log', filemode='w', level=logging.INFO)
+logging.basicConfig(filename='DQN/dqn.log', filemode='w', level=logging.INFO)
 
-LOG = True
+LOG = False
 # ------------------------------------------------------------------
 # setup the environment
-env = gym.make("CartPole-v1", render_mode = "human")
+env = gym.make("CartPole-v1")
 obs, info = env.reset()
-env.render()
+#env.render()
 if LOG: logger.info('Env set up')
 if LOG: logger.info('Obs: %s', obs)
 
@@ -106,7 +108,7 @@ class DQN(nn.Module):
 # Hyperparameters
 
 BATCH_SIZE = 128    # number of transistions sampled from the replay buffer
-GAMMA = 0.99        # disocount factor
+GAMMA = 0.99        # discount factor
 
 # Epsilon - the probability with which a random action is chosen
 EPS_START = 0.9     # starting value of epsilon
@@ -255,12 +257,12 @@ def optimize_model():
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
     # num_episodes = 600
-    num_episodes = 10
+    num_episodes = 600
 else:
     # num_episodes = 50
     num_episodes = 10
 
-for i_episode in range(num_episodes):
+for i_episode in tqdm(range(num_episodes)):
     # initialize the env to get the state
     state, info = env.reset()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)    # [-0.004 -0.010 0.037 -0.034] -> [[-0.004, -0.010,  0.037, -0.034]]

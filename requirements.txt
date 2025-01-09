@@ -3,6 +3,7 @@ gymnasium
 gym
 swig
 gymnasium[box2d]
+gym[mujoco]
 tqdm
 matplotlib
 imageio
