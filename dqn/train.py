@@ -23,6 +23,31 @@ def train(config):
     # Create environment
     env = gym.make(config['env_name'])
 
+    if config.get('use_balance_wrapper', False):
+        if config['env_name'] == 'Acrobot-v1':
+            from wrappers.acrobot_balance import AcrobotBalanceWrapper
+            env = AcrobotBalanceWrapper(
+                env,
+                balance_duration=config['balance_duration'],
+                angle_threshold=config['angle_threshold']
+            )
+        elif config['env_name'] == 'Pendulum-v1':
+            from wrappers.pendulum_balance import PendulumBalanceWrapper
+            env = PendulumBalanceWrapper(
+                env,
+                balance_duration=config['balance_duration'],
+                angle_threshold=config['angle_threshold']
+            )
+        print(f"Using balance wrapper: {config['balance_duration']}s duration, {config['angle_threshold']} rad threshold")
+
+    if config.get('use_action_discretizer', False):
+        from wrappers.action_discretizer import ActionDiscretizer
+        env = ActionDiscretizer(
+            env,
+            n_bins=config['n_action_bins']
+        )
+        print(f"Using action discretizer: {config['n_action_bins']} discrete actions")
+
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
@@ -172,12 +197,14 @@ def plot_training(rewards_per_episode, losses, config):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python train.py [acrobot|cartpole]")
+        print("Usage: python train.py [acrobot|cartpole|pendulum|pendulum_balance]")
         print("\nAvailable environments:")
-        print("  acrobot  - Acrobot-v1")
-        print("  cartpole - CartPole-v1")
+        print("  acrobot          - Acrobot-v1 (balance task)")
+        print("  cartpole         - CartPole-v1")
+        print("  pendulum         - Pendulum-v1 (swing-up)")
+        print("  pendulum_balance - Pendulum-v1 (balance task)")
         sys.exit(1)
-    
+
     env_choice = sys.argv[1].lower()
 
     # Load config
@@ -185,6 +212,10 @@ if __name__ == '__main__':
         from configs.acrobot import CONFIG
     elif env_choice == 'cartpole':
         from configs.cartpole import CONFIG
+    elif env_choice == 'pendulum':
+        from configs.pendulum import CONFIG
+    elif env_choice == 'pendulum_balance':
+        from configs.pendulum_balance import CONFIG
     else:
         print(f"Unknown environment: {env_choice}")
         sys.exit(1)
