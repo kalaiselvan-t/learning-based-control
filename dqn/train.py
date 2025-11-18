@@ -23,22 +23,25 @@ def train(config):
     # Create environment
     env = gym.make(config['env_name'])
 
+    balance_wrapper = None
     if config.get('use_balance_wrapper', False):
         if config['env_name'] == 'Acrobot-v1':
             from wrappers.acrobot_balance import AcrobotBalanceWrapper
-            env = AcrobotBalanceWrapper(
+            balance_wrapper = AcrobotBalanceWrapper(
                 env,
                 balance_duration=config['balance_duration'],
                 angle_threshold=config['angle_threshold']
             )
         elif config['env_name'] == 'Pendulum-v1':
             from wrappers.pendulum_balance import PendulumBalanceWrapper
-            env = PendulumBalanceWrapper(
+            balance_wrapper = PendulumBalanceWrapper(
                 env,
                 balance_duration=config['balance_duration'],
                 angle_threshold=config['angle_threshold']
             )
-        print(f"Using balance wrapper: {config['balance_duration']}s duration, {config['angle_threshold']} rad threshold")
+        env = balance_wrapper
+        initial_threshold = config.get('curriculum_schedule', [(0, config['angle_threshold'])])[0][1] if config.get('use_curriculum') else config['angle_threshold']
+        print(f"Using balance wrapper: {config['balance_duration']}s duration, initial threshold: {initial_threshold} rad")
 
     if config.get('use_action_discretizer', False):
         from wrappers.action_discretizer import ActionDiscretizer
@@ -88,7 +91,17 @@ def train(config):
     print(f"Buffer size: {len(agent.replay_buffer)}\n")
 
     # Training loop
+    current_threshold = None
+
     for episode in tqdm(range(config['episodes']), desc="Training"):
+        # Curriculum learning: update threshold if enabled
+        if config.get('use_curriculum', False) and balance_wrapper is not None:
+            new_threshold = get_current_threshold(episode, config['curriculum_schedule'])
+            if new_threshold != current_threshold:
+                balance_wrapper.angle_threshold = new_threshold
+                current_threshold = new_threshold
+                tqdm.write(f"\nCurriculum: Episode {episode} - threshold updated to {new_threshold:.2f} rad")
+    
         state, _ = env.reset()
         total_reward = 0
         episode_loss = []
@@ -143,6 +156,17 @@ def train(config):
     plot_training(rewards_per_episode, losses, config)
 
     return agent, rewards_per_episode
+
+def get_current_threshold(episode, curriculum_schedule):
+    """Get threshold for current episode based on curriculum"""
+    current_threshold = curriculum_schedule[0][1]       # Defaults to first
+
+    for ep, threshold in curriculum_schedule:
+        if episode >= ep:
+            current_threshold = threshold
+        else:
+            break
+    return current_threshold
 
 def plot_training(rewards_per_episode, losses, config):
     """
