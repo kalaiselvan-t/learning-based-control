@@ -1,6 +1,7 @@
 .venv/
 *.log
 .*/**
+.*/
 docs/_docs/
 __pycache__/
 *.pyc
